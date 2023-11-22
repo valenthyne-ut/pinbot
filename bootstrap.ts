@@ -1,7 +1,8 @@
 import { Client, GatewayIntentBits } from "discord.js";
-import { logger } from "shared-lib/classes/Logger";
 import { ClientInstanceConfig } from "shared-lib/types/ClientInstanceConfig";
-import { sequelize } from "./classes/db";
+import { messageCreateHook } from "./classes/hooks/messageCreate.hook";
+import { interactionCreateHook } from "./classes/hooks/interactionCreate.hook";
+import { readyHook } from "./classes/hooks/ready.hook";
 
 export const init = (config: ClientInstanceConfig) => {
 	const client = new Client({intents: [
@@ -10,8 +11,8 @@ export const init = (config: ClientInstanceConfig) => {
 	]});
 
 	client.login(config.token);
-	client.on("ready", async () => {
-		logger.success(client.user?.tag, "ready.");
-		await sequelize.sync();
-	});
+	
+	client.on("ready", readyHook);
+	client.on("messageCreate", messageCreateHook);
+	client.on("interactionCreate", interactionCreateHook);
 };
