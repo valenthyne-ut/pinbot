@@ -1,6 +1,6 @@
-import { ContextMenuCommandBuilder, Interaction, SlashCommandBuilder } from "discord.js";
+import { CommandInteraction, ContextMenuCommandBuilder, SlashCommandBuilder } from "discord.js";
 
 export type ClientInteraction = {
 	data: SlashCommandBuilder | ContextMenuCommandBuilder;
-	execute(interaction: Interaction): Promise<void>;
+	execute(interaction: CommandInteraction): Promise<void>;
 }

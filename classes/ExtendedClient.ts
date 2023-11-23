@@ -4,19 +4,21 @@ import { ClientInteraction } from "../types/ClientInteraction";
 import { existsSync, readdirSync } from "fs";
 import { join } from "path";
 import { logger } from "shared-lib/classes/Logger";
+import { PinbotInstanceConfig } from "../types/PinbotInstanceConfig";
 
 export class ExtendedClient extends Client {
 	private interactionMap: Map<string, ClientInteraction> = new Map();
 	private interactionsFolderPath: string;
+	private config: PinbotInstanceConfig;
 
-	constructor(options: ClientOptions, interactionsFolderPath: string) {
+	constructor(options: ClientOptions, config: PinbotInstanceConfig, interactionsFolderPath: string) {
 		super(options);
 		if(!existsSync(interactionsFolderPath)) {
 			throw new Error("Interactions folder path doesn't exist.");
 		} else {
 			this.interactionsFolderPath = interactionsFolderPath;
 		}
-
+		this.config = config;
 		this.loadInteractions();
 	}
 
@@ -35,7 +37,15 @@ export class ExtendedClient extends Client {
 		});
 	}
 
-	getInteractions() {
+	getInteractions(): Array<ClientInteraction> {
 		return Array.from(this.interactionMap.values());
+	}
+
+	getInteraction(name: string): ClientInteraction | undefined {
+		return this.interactionMap.get(name);
+	}
+
+	getDeployInteractionsStatus(): boolean {
+		return this.config.deployInteractions;
 	}
 }
