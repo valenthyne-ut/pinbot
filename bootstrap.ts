@@ -15,9 +15,9 @@ export const init = async (config: PinbotInstanceConfig) => {
 		]
 	}, config, interactionsFolderPath);
 
-	await client.login(config.token);
-
 	client.on("ready", readyHook);
 	client.on("messageCreate", messageCreateHook);
 	client.on("interactionCreate", interactionCreateHook);
+
+	await client.login(config.token);
 };
