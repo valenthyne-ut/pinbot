@@ -39,23 +39,25 @@ export const execute = async (interaction: ChatInputCommandInteraction) => {
 		while(!rejected) {
 			await response.awaitMessageComponent({filter: filter, time: 60000})
 				.then(async confirmation => {
-					const page = parseInt((await response.fetch()).embeds[0].footer!.text);
+					const responseMessage = await response.fetch();
+					const page = parseInt(responseMessage.embeds[0].footer!.text);
 					const pins = await Pin.findAll({where: {
 						channel_id: interaction.channelId
 					}});
+					const pinPages = Math.floor(pins.length / 10) + 1;
 					
 					switch(confirmation.customId) {
 					case "previous":
 						if(page > 1) { 
-							(await response.fetch()).edit({
+							responseMessage.edit({
 								embeds: [paginatedEmbed.setFooter({text: (page - 1).toString()})]
 							}); 
 						}
 						break;
 		
 					case "next":
-						if(page < Math.floor(pins.length / 10) + 1) {
-							(await response.fetch()).edit({
+						if(page < pinPages) {
+							responseMessage.edit({
 								embeds: [paginatedEmbed.setFooter({text: (page + 1).toString()})]
 							});
 						}
