@@ -30,6 +30,7 @@ const getEmbedArrayFromPage = async (guildId: string, channelId: string, pageNum
 			.setTitle("Jump to message")
 			.setURL(`https://discord.com/channels/${pin.guild_id}/${pin.channel_id}/${pin.message_id}`)
 			.setAuthor({name: pin.author, iconURL: pin.author_avatar_url})
+			.setDescription(pin.message_content)
 			.setTimestamp(pin.datetime_sent)
 			.setColor("#2B2D31");	
 		if(index == 4 || pins.length - 1 == index) { pinEmbed.setFooter({text: `${pageNumber} out of ${maxPages} pages`}); }
@@ -120,18 +121,20 @@ export const execute = async (interaction: ChatInputCommandInteraction) => {
 						});
 					})
 					.catch(async () => {
-						await responseMessage.edit({
-							components: [
-								new ActionRowBuilder<ButtonBuilder>()
-									.addComponents(
-										new ButtonBuilder()
-											.setCustomId("halted")
-											.setLabel("🛑")
-											.setStyle(ButtonStyle.Secondary)
-											.setDisabled(true)
-									)
-							]
-						});
+						await response.fetch().then(fetched =>{
+							fetched.edit({
+								components: [
+									new ActionRowBuilder<ButtonBuilder>()
+										.addComponents(
+											new ButtonBuilder()
+												.setCustomId("halted")
+												.setLabel("🛑")
+												.setStyle(ButtonStyle.Secondary)
+												.setDisabled(true)
+										)
+								]
+							});
+						}).catch(() => { return; });
 						rejected = true;
 					});
 			}

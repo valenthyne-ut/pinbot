@@ -11,7 +11,8 @@ export const init = async (config: PinbotInstanceConfig) => {
 	const client = new ExtendedClient({
 		intents: [
 			GatewayIntentBits.Guilds,
-			GatewayIntentBits.GuildMessages
+			GatewayIntentBits.GuildMessages,
+			GatewayIntentBits.MessageContent
 		]
 	}, config, interactionsFolderPath);
 

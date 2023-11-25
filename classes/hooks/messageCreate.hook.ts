@@ -18,8 +18,23 @@ export const messageCreateHook = async (message: Message) => {
 		const pinnedMessageId = pinnedMessage.id;
 		const dateTimeSent = new Date(pinnedMessage.createdTimestamp);
 
+		let messageContent = "";
+		if(pinnedMessage.content.length > 0) {
+			messageContent = pinnedMessage.content.substring(0, 50);
+			if(pinnedMessage.content.length > 50) { messageContent += "..."; }
+		} else if(pinnedMessage.attachments.size > 0) {
+			messageContent = `${pinnedMessage.attachments.size} attachment(s).`;
+		} else if(pinnedMessage.embeds.length > 0) {
+			messageContent = `${pinnedMessage.embeds.length} embed(s).`;
+		}
+
 		const messageLink = `https://discord.com/channels/${pinnedMessageGuildId}/${pinnedMessageChannelId}/${pinnedMessageId}`;
-		const isPinned = await Pin.findOne({where: {message_id: pinnedMessageId}});
+		const isPinned = await Pin.findOne({
+			where: {
+				channel_id: pinnedMessageChannelId, 
+				message_id: pinnedMessageId
+			}
+		});
 
 		if(isPinned) {
 			await message.channel.send({
@@ -29,6 +44,7 @@ export const messageCreateHook = async (message: Message) => {
 			await Pin.create({
 				author: messageAuthor,
 				author_avatar_url: messageAuthorAvatarURL,
+				message_content: messageContent,
 				guild_id: pinnedMessageGuildId,
 				channel_id: pinnedMessageChannelId,
 				message_id: pinnedMessageId,
