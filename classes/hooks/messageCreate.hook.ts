@@ -12,6 +12,7 @@ export const messageCreateHook = async (message: Message) => {
 		await message.delete();
 
 		const messageAuthor = pinnedMessage.author.username;
+		const messageAuthorAvatarURL = pinnedMessage.author.avatarURL() || "https://cdn.discordapp.com/embed/avatars/0.png";
 		const pinnedMessageGuildId = pinnedMessage.guildId!; // already assured we were in a guild above
 		const pinnedMessageChannelId = pinnedMessage.channelId;
 		const pinnedMessageId = pinnedMessage.id;
@@ -27,6 +28,7 @@ export const messageCreateHook = async (message: Message) => {
 		} else {
 			await Pin.create({
 				author: messageAuthor,
+				author_avatar_url: messageAuthorAvatarURL,
 				guild_id: pinnedMessageGuildId,
 				channel_id: pinnedMessageChannelId,
 				message_id: pinnedMessageId,

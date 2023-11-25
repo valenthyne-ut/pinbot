@@ -11,6 +11,7 @@ export const execute = async (interaction: MessageContextMenuCommandInteraction)
 	const pinnedMessage = interaction.targetMessage;
 
 	const messageAuthor = pinnedMessage.author.username;
+	const messageAuthorAvatarURL = pinnedMessage.author.avatarURL() || "https://cdn.discordapp.com/embed/avatars/0.png";
 	const pinnedMessageGuildId = pinnedMessage.guildId!;
 	const pinnedMessageChannelId = pinnedMessage.channelId;
 	const pinnedMessageId = pinnedMessage.id;
@@ -27,6 +28,7 @@ export const execute = async (interaction: MessageContextMenuCommandInteraction)
 	} else {
 		await Pin.create({
 			author: messageAuthor,
+			author_avatar_url: messageAuthorAvatarURL,
 			guild_id: pinnedMessageGuildId,
 			channel_id: pinnedMessageChannelId,
 			message_id: pinnedMessageId,
