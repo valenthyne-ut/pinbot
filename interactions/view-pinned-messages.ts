@@ -1,7 +1,7 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChatInputCommandInteraction, EmbedBuilder, MessageComponentInteraction, SlashCommandBuilder } from "discord.js";
 import { Pin } from "../classes/db/models/Pin.model";
 
-const pagesPerList = 5;
+const pinsPerPage = 5;
 
 const getPinPagesCount = async (guildId: string, channelId: string): Promise<number> => {
 	const pinTotal = await Pin.count({
@@ -10,17 +10,18 @@ const getPinPagesCount = async (guildId: string, channelId: string): Promise<num
 			channel_id: channelId
 		}
 	});
-	return Math.floor(pinTotal / pagesPerList) + 1;
+
+	return Math.floor(pinTotal / pinsPerPage) + 1;
 };
 
-const getPaginatedEmbedList = async (guildId: string, channelId: string, page: number): Promise<Array<EmbedBuilder>> => {
+const getEmbedArrayFromPage = async (guildId: string, channelId: string, pageNumber: number, maxPages: number): Promise<Array<EmbedBuilder>> => {
 	const pins = (await Pin.findAll({
 		where: {
 			guild_id: guildId,
 			channel_id: channelId
 		},
-		limit: pagesPerList,
-		offset: (page - 1) * pagesPerList
+		limit: pinsPerPage,
+		offset: (pageNumber - 1) * pinsPerPage
 	})).map(pin => pin.toJSON());
 
 	const pinEmbeds: Array<EmbedBuilder> = [];
@@ -30,8 +31,8 @@ const getPaginatedEmbedList = async (guildId: string, channelId: string, page: n
 			.setURL(`https://discord.com/channels/${pin.guild_id}/${pin.channel_id}/${pin.message_id}`)
 			.setAuthor({name: pin.author, iconURL: pin.author_avatar_url})
 			.setTimestamp(pin.datetime_sent)
-			.setColor("#2B2D31");
-		if(index == 4 || pins.length - 1 == index) { pinEmbed.setFooter({text: page.toString()}); }
+			.setColor("#2B2D31");	
+		if(index == 4 || pins.length - 1 == index) { pinEmbed.setFooter({text: `${pageNumber} out of ${maxPages} pages`}); }
 
 		pinEmbeds.push(pinEmbed);
 	});
@@ -41,30 +42,28 @@ const getPaginatedEmbedList = async (guildId: string, channelId: string, page: n
 
 export const data = new SlashCommandBuilder()
 	.setName("view-pinned-messages")
-	.setDescription("Display the server's pinned messages.")
+	.setDescription("Display this channel's pinned messages")
 	.addIntegerOption(option => 
 		option
-			.setName("page")
-			.setDescription("The page to get (each page contains 10 pins).")
-			.setRequired(false));
+			.setName("page-number")
+			.setDescription(`The page of pins to get (each page contains ${pinsPerPage} pins).`)
+			.setRequired(false))
+	.setDMPermission(false);
 
 export const execute = async (interaction: ChatInputCommandInteraction) => {
-	
-	const interactionGuildId = interaction.guildId;
-	if(interactionGuildId == null) return;
 
-	const interactionChannelId = interaction.channelId;
+	await interaction.deferReply();
 
-	let pinPagesCount = await getPinPagesCount(interactionGuildId, interactionChannelId);
+	const guildId = interaction.guildId!;
+	const channelId = interaction.channelId;
 
-	let page = 1;
-	const userPage = interaction.options.getInteger("page", false);
+	let pinPages = await getPinPagesCount(guildId, channelId);
 
-	if(userPage != null && (userPage > 0 && userPage < pinPagesCount)) {
-		page = userPage;
-	}
+	const pageNumberOptionValue = interaction.options.getInteger("page-number", false);
+	const pageNumber = (pageNumberOptionValue != null && (pageNumberOptionValue > 0 && pageNumberOptionValue < pinPages)) ?
+		pageNumberOptionValue:
+		1;
 
-	const pinEmbeds = await getPaginatedEmbedList(interactionGuildId, interactionChannelId, page);
 	const paginationButtonGroup = new ActionRowBuilder<ButtonBuilder>()
 		.addComponents(
 			new ButtonBuilder()
@@ -77,47 +76,66 @@ export const execute = async (interaction: ChatInputCommandInteraction) => {
 				.setStyle(ButtonStyle.Primary)
 		);
 
-	await interaction.reply({
-		embeds: pinEmbeds,
-		components: [paginationButtonGroup]
-	}).then(async response => {
-		const filter = (filterInteraction: MessageComponentInteraction) => {
-			filterInteraction.deferUpdate();
-			return filterInteraction.user.id === interaction.user.id;
-		};
+	const pinEmbeds = await getEmbedArrayFromPage(guildId, channelId, pageNumber, pinPages);
+	if(pinEmbeds.length == 0) {
+		await interaction.editReply({
+			content: "This channel doesn't have any pinned messages."
+		});
+	} else {
+		await interaction.editReply({
+			embeds: await getEmbedArrayFromPage(guildId, channelId, pageNumber, pinPages),
+			components: [paginationButtonGroup]
+		}).then(async response => {
+			const filter = (filterInteraction: MessageComponentInteraction) => {
+				filterInteraction.deferUpdate();
+				return filterInteraction.user.id === interaction.user.id;
+			};
 
-		let rejected = false;
+			let rejected = false;
 
-		while(!rejected) {
-			await response.awaitMessageComponent({filter: filter, time: 60000})
-				.then(async confirmation => {
-					
-					const responseMessage = await response.fetch();
-					const embedPage = parseInt(responseMessage.embeds.pop()!.footer!.text);
-					pinPagesCount = await getPinPagesCount(interactionGuildId, interactionChannelId);
+			while(!rejected) {
+				const responseMessage = await response.fetch();
+				await response.awaitMessageComponent({filter: filter, time: 60000})
+					.then(async confirmation => {
+						const embedPage = parseInt(responseMessage.embeds.pop()!.footer!.text.split(" ").shift()!);
+						pinPages = await getPinPagesCount(guildId, channelId);
+						let nextPage = pageNumber;
 
-					switch(confirmation.customId) {
-					case "previous":
-						if(embedPage > 1) {
-							responseMessage.edit({
-								embeds: await getPaginatedEmbedList(interactionGuildId, interactionChannelId, embedPage - 1)
-							});
+						switch(confirmation.customId) {
+						case "previous":
+							if(embedPage > 1) {
+								nextPage = embedPage - 1;
+							}
+							break;
+
+						case "next":
+							if(embedPage < pinPages) {
+								nextPage = embedPage + 1;
+							}
+							break;
 						}
-						break;
 
-					case "next":
-						if(embedPage < pinPagesCount) {
-							responseMessage.edit({
-								embeds: await getPaginatedEmbedList(interactionGuildId, interactionChannelId, embedPage + 1)
-							});
-						}
-						break;
-					}
-
-				})
-				.catch(() => {
-					rejected = true;
-				});
-		}
-	});
+						await responseMessage.edit({
+							embeds: await getEmbedArrayFromPage(guildId, channelId, nextPage, pinPages)
+						});
+					})
+					.catch(async () => {
+						await responseMessage.edit({
+							components: [
+								new ActionRowBuilder<ButtonBuilder>()
+									.addComponents(
+										new ButtonBuilder()
+											.setCustomId("halted")
+											.setLabel("🛑")
+											.setStyle(ButtonStyle.Secondary)
+											.setDisabled(true)
+									)
+							]
+						});
+						rejected = true;
+					});
+			}
+		});
+	}
+			
 };
