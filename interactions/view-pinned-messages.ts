@@ -29,11 +29,12 @@ const getEmbedArrayFromPage = async (guildId: string, channelId: string, pageNum
 		const pinEmbed = new EmbedBuilder()
 			.setTitle("Jump to message")
 			.setURL(`https://discord.com/channels/${pin.guild_id}/${pin.channel_id}/${pin.message_id}`)
-			.setAuthor({name: pin.author, iconURL: pin.author_avatar_url})
-			.setDescription(pin.message_content)
-			.setTimestamp(pin.datetime_sent)
+			.setAuthor({name: pin.display_name, iconURL: pin.avatar})
+			.setDescription(pin.content)
+			.setTimestamp(pin.timestamp_sent)
 			.setColor("#2B2D31");	
 		if(index == 4 || pins.length - 1 == index) { pinEmbed.setFooter({text: `${pageNumber} out of ${maxPages} pages`}); }
+		if(pin.content_preview != null) { pinEmbed.setThumbnail(pin.content_preview); }
 
 		pinEmbeds.push(pinEmbed);
 	});

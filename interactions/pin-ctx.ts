@@ -9,49 +9,33 @@ export const execute = async (interaction: MessageContextMenuCommandInteraction)
 	if(interaction.guildId == null) return;
 
 	const pinnedMessage = interaction.targetMessage;
+	if(!pinnedMessage) return;
 
-	const messageAuthor = pinnedMessage.author.username;
-	const messageAuthorAvatarURL = pinnedMessage.author.avatarURL() || "https://cdn.discordapp.com/embed/avatars/0.png";
-	const pinnedMessageGuildId = pinnedMessage.guildId!;
-	const pinnedMessageChannelId = pinnedMessage.channelId;
-	const pinnedMessageId = pinnedMessage.id;
-	const dateTimeSent = new Date(pinnedMessage.createdTimestamp);
+	await pinnedMessage.unpin();
 
-	let messageContent = "";
-	if(pinnedMessage.content.length > 0) {
-		messageContent = pinnedMessage.content.substring(0, 50) + "...";
-	} else if(pinnedMessage.attachments.size > 0) {
-		messageContent = `${pinnedMessage.attachments.size} attachment(s).`;
-	} else if(pinnedMessage.embeds.length > 0) {
-		messageContent = `${pinnedMessage.embeds.length} embed(s).`;
-	}
-
-	const messageLink = `https://discord.com/channels/${pinnedMessageGuildId}/${pinnedMessageChannelId}/${pinnedMessageId}`;
-	const isPinned = await Pin.findOne({where: {message_id: pinnedMessageId}});
+	const isPinned = await Pin.findOne({
+		where: {
+			channel_id: pinnedMessage.channelId,
+			message_id: pinnedMessage.id
+		}
+	});
 
 	if(isPinned) {
 		await interaction.reply({
-			content: "Message is already pinned.",
-			ephemeral: true
+			content: `[The message you tried to pin](${isPinned.getMessageLink()}) is already pinned.`
 		});
 	} else {
-		await Pin.create({
-			author: messageAuthor,
-			author_avatar_url: messageAuthorAvatarURL,
-			message_content: messageContent,
-			guild_id: pinnedMessageGuildId,
-			channel_id: pinnedMessageChannelId,
-			message_id: pinnedMessageId,
-			datetime_sent: dateTimeSent
-		}).then(async () => {
-			await interaction.reply({
-				content: `<@${interaction.user.id}> pinned [a message](${messageLink}) to this channel. See all pinned messages.`
-			}).catch(async () => {
+		await Pin.createMessagePin(pinnedMessage)
+			.then(async (pin) => {
 				await interaction.reply({
-					content: "I couldn't pin the message, please try again.",
+					content: `<@${interaction.user.id}> pinned [a message](${pin.getMessageLink()}) to this channel.`
+				});
+			})
+			.catch(async () => {
+				await interaction.reply({
+					content: "Couldn't pin the message. Please try again.",
 					ephemeral: true
 				});
 			});
-		});
 	}
 };
