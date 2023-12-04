@@ -1,6 +1,6 @@
 import { logger } from "shared-lib/classes/Logger";
 import { ExtendedClient } from "./ExtendedClient";
-import { RESTPostAPIApplicationCommandsJSONBody as InteractionsData, REST, Routes } from "discord.js";
+import { RESTPostAPIApplicationCommandsJSONBody as InteractionsData, Routes } from "discord.js";
 
 export class InteractionDeployer {
 	private client: ExtendedClient;
@@ -17,14 +17,12 @@ export class InteractionDeployer {
 				.map(interaction => interaction.data.toJSON());
 
 		const user = this.client.user!;
-		const clientToken = this.client.token!;
 
-		const rest = new REST().setToken(clientToken);
 		const guilds = this.client.guilds.cache.map(guild => guild.id);
 
 		guilds.forEach(async (guildId: string) => {
 			try {
-				await rest.put(Routes.applicationGuildCommands(user.id, guildId), { body: interactionsData });
+				await this.client.rest.put(Routes.applicationGuildCommands(user.id, guildId), { body: interactionsData });
 				logger.success(`Deployed ${interactionsData.length} interactions to guild ${guildId}`);
 			} catch(error) {
 				let errorMessage = "";

@@ -62,7 +62,7 @@ export class Pin extends Model<InferAttributes<Pin>, InferCreationAttributes<Pin
 		}));
 	};
 
-	public getMessageLink = () => {
+	public getMessageLink = (): string => {
 		return `https://discord.com/channels/${this.guild_id}/${this.channel_id}/${this.message_id}`;
 	};
 }
