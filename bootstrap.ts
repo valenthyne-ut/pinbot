@@ -2,11 +2,11 @@ import { GatewayIntentBits } from "discord.js";
 import { messageCreateHook } from "./classes/hooks/messageCreate.hook";
 import { interactionCreateHook } from "./classes/hooks/interactionCreate.hook";
 import { readyHook } from "./classes/hooks/ready.hook";
-import { ExtendedClient } from "./classes/ExtendedClient";
+import { ExtendedClient } from "cli-lib/ExtendedClient";
 import { dirname, join } from "path";
-import { PinbotInstanceConfig } from "./types/PinbotInstanceConfig";
+import { ClientInstanceConfig } from "shared-lib/types/ClientInstanceConfig";
 
-export const init = async (config: PinbotInstanceConfig) => {
+export const init = async (config: ClientInstanceConfig) => {
 	const interactionsFolderPath = join(dirname(__filename), "interactions");
 	const client = new ExtendedClient({
 		intents: [

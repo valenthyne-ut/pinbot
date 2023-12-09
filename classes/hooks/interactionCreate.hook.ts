@@ -1,5 +1,5 @@
 import { Interaction } from "discord.js";
-import { ExtendedClient } from "../ExtendedClient";
+import { ExtendedClient } from "cli-lib/ExtendedClient";
 import { logger } from "shared-lib/classes/Logger";
 
 export const interactionCreateHook = async (interaction: Interaction) => {
@@ -7,11 +7,11 @@ export const interactionCreateHook = async (interaction: Interaction) => {
 	const client = interaction.client as ExtendedClient;
 
 	if(interaction.isCommand()) {
-		const clientInteraction = client.getInteraction(interaction.commandName);
-		if(clientInteraction == undefined) {
-			logger.error("Missed interaction named", interaction.commandName);
+		const clientCommand = client.getCommand(interaction.commandName);
+		if(clientCommand == undefined) {
+			logger.error("Missed commnad named", interaction.commandName);
 		} else {
-			clientInteraction.execute(interaction);
+			clientCommand.execute(interaction);
 		}
 	}
 };

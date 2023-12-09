@@ -1,8 +1,7 @@
 import { Client } from "discord.js";
 import { logger } from "shared-lib/classes/Logger";
 import { sequelize } from "../db";
-import { ExtendedClient } from "../ExtendedClient";
-import { InteractionDeployer } from "../InteractionDeployer";
+import { ExtendedClient } from "cli-lib/ExtendedClient";
 
 export const readyHook = async (client: Client) => {
 	const extendedClient = client as ExtendedClient;
@@ -10,7 +9,7 @@ export const readyHook = async (client: Client) => {
 	logger.success(extendedClient.user?.tag, "ready.");
 	await sequelize.sync();
 
-	if(extendedClient.getDeployInteractionsStatus()) {
-		new InteractionDeployer(extendedClient).deployInteractions();
+	if(extendedClient.getShouldDeployCommands()) {
+		extendedClient.deployCommands();
 	}
 };
